@@ -22,15 +22,18 @@ const port = process.env.PORT || 5000;
 // start the server
 app.listen(port,() => console.log(`Server running on port ${port}`));
 
-
-
 // POST submission
 app.post('/api/submissions', async (req, res) => {
-  const submission = new Submission(req.body);
+  // Create a new Submission instance using the data from the request body
+  const submissionData = req.body;
   try {
+    const submission = new Submission(submissionData);
+    // Save the submission to the database
     const savedSubmission = await submission.save();
+    // Send back the saved submission as the response
     res.status(201).send(savedSubmission);
   } catch (error) {
+    // If there's an error, send back a 400 response with the error message
     res.status(400).send(error);
   }
 });
