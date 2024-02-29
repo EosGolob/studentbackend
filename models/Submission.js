@@ -1,9 +1,18 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 const SubmissionSchema = new mongoose.Schema({
   firstName: String,
   middleName: String,
   lastName: String,
-  email: String,
+  email: { 
+    type: String,
+    required: true,
+    unique:true
+  },
+  password: {
+    type: String,
+    required: true
+  },
   interviewDate: Date,
   jobProfile: String,
   qualification: String,
@@ -31,5 +40,13 @@ updatedAt: {
   default: Date.now
 }
 });
+// Hash password before saving
+SubmissionSchema.pre('save', async function (next) {
+  const userSubmission = this;
+  if (!userSubmission.isModified('password')) return next();
+  const hashedPassword = await bcrypt.hash(userSubmission.password, 10);
+  userSubmission.password = hashedPassword;
+  next();
+})
 
 module.exports = mongoose.model('Submission',SubmissionSchema);
