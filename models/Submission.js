@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+
 const SubmissionSchema = new mongoose.Schema({
   firstName: String,
   middleName: String,
@@ -31,6 +32,21 @@ const SubmissionSchema = new mongoose.Schema({
         enum: ['Pending', 'Approved', 'Rejected'],
         default:'Pending'
     },
+    permanentAddress: String,
+    currentAddress: String,
+    adharNo: String,
+    panNo: String,
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Other']
+    },
+    previousEmployee: String,
+    dob: Date,
+    maritalStatus: {
+      type: String,
+      enum: ['Single', 'Married']
+    },
+    referral: String,
 createdAt: {
   type: Date,
   default: Date.now

@@ -1,17 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const bodyParse = require('body-parser');
+const bodyParser = require('body-parser');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
 const app = express();
 
 const Submission = require('./models/Submission');
 
 // Middleware
 app.use(cors());
-app.use(bodyParse.json());
+app.use(bodyParser.json());
 
 // MongoDB connection 
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -64,22 +65,24 @@ app.put('/api/submissions/:id/updateStatus', async (req, res) => {
   // User login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log('emaildata',email)
+  console.log('passwordData',password)
 
   try {
-    const user = await User.findOne({ email });
+    const submission = await Submission.findOne({ email });
 
-    if (!user) {
+    if (!submission) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, submission.password);
 
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     // If credentials are valid, generate JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ submissionId: submission._id}, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({ token });
   } catch (error) {
@@ -98,7 +101,7 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
+    req.submissionId = decoded.submissionId ;
     next();
   } catch (error) {
     console.error(error);
@@ -109,8 +112,11 @@ const verifyToken = (req, res, next) => {
 // Example protected route
 app.get('/api/user', verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    res.status(200).json(user);
+    const submission  = await Submission.findById(req.submissionId);
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+    res.status(200).json(submission );
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
