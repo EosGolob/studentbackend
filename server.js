@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const app = express();
 
 const Submission = require('./models/Submission');
+const AdminUser = require('./models/AdminUser');
 
 // Middleware
 app.use(cors());
@@ -40,9 +41,21 @@ app.post('/api/submissions', async (req, res) => {
     res.status(400).send(error);
   }
 });
-
+// POST admin
+app.post('/api/admins', async (req, res) => {
+  const adminData = req.body;
+  try {
+    const adminUser = new AdminUser(adminData);
+    const savedAdmin = await adminUser.save();
+    res.status(201).send(savedAdmin);
+  } catch (error) {
+    res.status(400).send(error);
+  }
+});
 // GET all submissions
 app.get('/api/submissions', async (req, res) => {
+  const ft=req.body.formData;
+  console.log('ft value:',ft);
   try {
     const submissions = await Submission.find();
     res.status(200).send(submissions);
