@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const app = express();
 
@@ -103,7 +104,44 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 });
+//  Admin login code 
+app.post('/api/Adminlogin', async (req, res) => {
+  const { email, password } = req.body;
+  console.log('email data',email);
+  console.log('password data',password);
+  try {
+    let user = await AdminUser.findOne({ email });
+    let isAdmin = false;
 
+    // If user not found in the regular user table, check admin table
+    if (!user) {
+      const admin = await Admin.findOne({ email });
+
+      if (!admin) {
+        return res.status(400).json({ message: 'Invalid email or password' });
+      }
+
+      // Authenticate admin
+      user = admin;
+      isAdmin = true;
+    }
+
+    // Compare passwords
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // If credentials are valid, generate JWT token
+    const token = jwt.sign({ userId: user._id, isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.json({ token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization;
@@ -133,5 +171,35 @@ app.get('/api/user', verifyToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
+  }
+});
+// send email code 
+app.post('/api/sendemail', async (req, res) => {
+  const { email} = req.body;
+
+  try {
+      const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          
+          auth: {
+              user: 'amritraj9472@gmail.com',
+              pass: 'ddrshtiddmuuiccn'
+          }
+          
+      });
+
+      const mailOptions = {
+          from: 'amritraj9472@gmail.com',
+          to: email,
+          subject: 'Hi this is test subject',
+          text: 'This is a test email sent from Node.js and Nodemailer'
+      };
+
+      const result = await transporter.sendMail(mailOptions);
+      console.log('Email sent successfully');
+      res.status(200).send('Email sent successfully');
+  } catch (error) {
+      console.error('Error sending email:', error);
+      res.status(500).send('Error sending email');
   }
 });
