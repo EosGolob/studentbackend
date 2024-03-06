@@ -30,7 +30,8 @@ app.listen(port,() => console.log(`Server running on port ${port}`));
 // POST submission
 app.post('/api/submissions', async (req, res) => {
   // Create a new Submission instance using the data from the request body
-  const submissionData = req.body;
+  const submissionData  = req.body;
+  console.log('submiddion data', submissionData)
   try {
     const submission = new Submission(submissionData);
     // Save the submission to the database
@@ -39,7 +40,9 @@ app.post('/api/submissions', async (req, res) => {
     res.status(201).send(savedSubmission);
   } catch (error) {
     // If there's an error, send back a 400 response with the error message
+    console.error('submiddion data error', error)
     res.status(400).send(error);
+    
   }
 });
 // POST admin
@@ -201,5 +204,32 @@ app.post('/api/sendemail', async (req, res) => {
   } catch (error) {
       console.error('Error sending email:', error);
       res.status(500).send('Error sending email');
+  }
+});
+
+
+// Update submission manager response
+app.put('/api/submissions/:id/managerResponse', async (req, res) => {
+  const { managerResponse } = req.body;
+  const submissionId = req.params.id;
+
+  try {
+    // Find the submission by ID
+    const submission = await Submission.findById(submissionId);
+
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+
+    // Update the submission with the manager's response
+    submission.managerResponse = managerResponse;
+
+    // Save the updated submission
+    const updatedSubmission = await submission.save();
+
+    res.status(200).json(updatedSubmission);
+  } catch (error) {
+    console.error('Error updating submission manager response:', error);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
