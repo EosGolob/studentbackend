@@ -46,6 +46,7 @@ app.post('/api/submissions', async (req, res) => {
   }
 });
 // POST admin
+//Register AdminLogin 
 app.post('/api/admins', async (req, res) => {
   const adminData = req.body;
   try {
@@ -80,6 +81,7 @@ app.put('/api/submissions/:id/updateStatus', async (req, res) => {
   }
 });
   // User login
+  //hand AdminLogin page 
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   console.log('emaildata',email)
