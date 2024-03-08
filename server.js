@@ -7,6 +7,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
+//for whs
+// const GupshupWhatsApp = require('gupshup-whatsapp-api');
+// const gupshupWhatsApp = new GupshupWhatsApp(process.env.GUPSHUP_AUTH_KEY, {
+//   logging: true,
+// });
+
 const app = express();
 
 const Submission = require('./models/Submission');
@@ -15,6 +21,9 @@ const AdminUser = require('./models/AdminUser');
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+//for whs
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // MongoDB connection 
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -233,5 +242,57 @@ app.put('/api/submissions/:id/managerResponse', async (req, res) => {
   } catch (error) {
     console.error('Error updating submission manager response:', error);
     res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// for whs 
+app.post('/whatsapp', express.raw({ type: 'application/json' }), async (req, res) => {
+  const message = req.body.Message;
+  const from = req.body.From;
+
+  // Save message to database
+  await Message.create({ sender: from, content: message, timestamp: new Date() });
+
+  // Acknowledge the message
+  gupshupWhatsApp.sendText(from, 'Thanks for your message!');
+
+  res.sendStatus(200);
+});
+
+// for whats
+app.post('/send-message', express.json(), async (req, res) => {
+  const { message } = req.body;
+  const to = process.env.WHATSAPP_NUMBER;
+
+  try {
+    // Send the message via Gupshup API
+    await gupshupWhatsApp.sendText(to, message);
+
+    // Save the message to your MongoDB database (optional)
+    await Message.create({ sender: to, content: message, timestamp: new Date() });
+
+    res.status(200).json({ status: 'success' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 'error', error: error.message });
+  }
+});
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const twiml = new Gupshup.Twilio.twiml.MessagingResponse();
+
+    const message = req.body.Body;
+    const from = req.body.From;
+
+    // Save the message to the database
+    await Message.create({ sender: from, content: message, timestamp: new Date() });
+
+    twiml.message(`Your message "${message}" has been saved.`);
+
+    res.set('Content-Type', 'text/xml');
+    res.send(twiml.toString());
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('An error occurred while processing the request.');
   }
 });
