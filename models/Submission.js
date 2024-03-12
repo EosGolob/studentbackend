@@ -27,7 +27,7 @@ const SubmissionSchema = new mongoose.Schema({
     },
     required: [true, 'Phone number is required']
   },
-    status:{
+  status:{
         type:String,
         enum: ['Pending', 'Approved', 'Rejected'],
         default:'Pending'
@@ -36,24 +36,28 @@ const SubmissionSchema = new mongoose.Schema({
     currentAddress: String,
     adharNo: String,
     panNo: String,
-    gender: {
+  gender: {
       type: String,
       enum: ['Male', 'Female', 'Other']
     },
     previousEmployee: String,
     dob: Date,
-    maritalStatus: {
+  maritalStatus: {
       type: String,
       enum: ['Single', 'Married']
     },
     referral: String,
-createdAt: {
+  createdAt: {
   type: Date,
   default: Date.now
 },
-updatedAt: {
+  updatedAt: {
   type: Date,
   default: Date.now
+},
+  responseDate:{
+  type:Date,
+  default:Date.now
 }
 });
 // Hash password before saving

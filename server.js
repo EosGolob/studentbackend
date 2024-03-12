@@ -8,10 +8,8 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
 //for whs
-// const GupshupWhatsApp = require('gupshup-whatsapp-api');
-// const gupshupWhatsApp = new GupshupWhatsApp(process.env.GUPSHUP_AUTH_KEY, {
-//   logging: true,
-// });
+const GupshupWhatsApp = require('gupshup-whatsapp-api');
+// const gupshupWhatsApp = new GupshupWhatsApp(process.env.GUPSHUP_AUTH_KEY, { logging: true });
 
 const app = express();
 
@@ -78,16 +76,26 @@ app.get('/api/submissions', async (req, res) => {
   }
 });
 
-// Update submission status
+// Update submission status and respone status
 app.put('/api/submissions/:id/updateStatus', async (req, res) => {
   try {
-    const updatedSubmission = await Submission.findByIdAndUpdate(req.params.id, {
-      $set: req.body
+    const {id} = req.params;
+    const {status} = req.body;
+    const responseDate = new Date();
+  /* 
+   const updatedSubmission = await Submission.findByIdAndUpdate(req.params.id, {  
+   $set: req.body
     }, { new: true });
     res.status(200).send(updatedSubmission);
   } catch (error) {
     res.status(400).send(error);
-  }
+  }*/
+  const updatedSubmission = await Submission.findByIdAndUpdate(id, { status, responseDate }, { new: true });
+  res.status(200).send(updatedSubmission);
+} catch (error) {
+  console.error('Error updating submission status:', error);
+  res.status(400).send(error);
+}
 });
   // User login
   //hand AdminLogin page 
