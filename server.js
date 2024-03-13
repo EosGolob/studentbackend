@@ -10,11 +10,66 @@ const nodemailer = require('nodemailer');
 //for whs
 const GupshupWhatsApp = require('gupshup-whatsapp-api');
 // const gupshupWhatsApp = new GupshupWhatsApp(process.env.GUPSHUP_AUTH_KEY, { logging: true });
+// Logic to copy data from old table to new table when status is 'Approved'
+
+
+
+async function copyApprovedEmployees() {
+  try {
+    // Find employees with status 'Approved' in the old table
+    const approvedEmployees = await Submission.find({ status: 'approved' });
+    
+    // Copy data for each approved employee to the new table
+    for (const employee of approvedEmployees) {
+     try{
+      const newEmployee = new EmployeeDetails({
+        firstName: employee.firstName,
+        middleName: employee.middleName,
+        lastName: employee.lastName,
+        email: employee.email,
+        interviewDate: employee.interviewDate,
+        jobProfile: employee.jobProfile,
+        qualification: employee.qualification,
+        phoneNo: employee.phoneNo,
+        permanentAddress: employee.permanentAddress,
+        currentAddress: employee.currentAddress,
+        adharNo: employee.adharNo,
+        panNo: employee.panNo,
+        gender: employee.gender,
+        previousEmployee: employee.previousEmployee,
+        dob: employee.dob,
+        maritalStatus: employee.maritalStatus,
+        referral: employee.referral,
+        joiningDate: new Date(), // Set joining date to current date
+        trainingStartDate: new Date(),// Set training starting date to current date
+        status: employee.status
+      });
+      
+      // Save the new employee data
+      await newEmployee.save();
+    }catch(error){
+      if(error.code === 11000){
+        console.warn(`Duplicate key error: ${error.message}. Skipping insertion for ${employee.email}`);
+        continue; 
+      }else{
+        throw error;
+      }
+      }
+    }
+    
+    console.log('Approved employees copied successfully.');
+  } catch (error) {
+    console.error('Error copying approved employees:', error);
+  }
+}
+
+
 
 const app = express();
 
 const Submission = require('./models/Submission');
 const AdminUser = require('./models/AdminUser');
+const EmployeeDetails= require( './models/EmployeeSchema' );
 
 // Middleware
 app.use(cors());
@@ -302,5 +357,66 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
   } catch (error) {
     console.error(error);
     res.status(500).send('An error occurred while processing the request.');
+  }
+});
+
+
+
+
+
+
+
+// Update submission status and response status
+app.put('/api/employeedetails/:id/updateStatus', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, joiningDate, trainingStartingDate } = req.body;
+    const responseDate = new Date();
+
+    // Update submission status and response date
+    const updatedSubmission = await Submission.findByIdAndUpdate(id, { status, responseDate }, { new: true });
+    
+    // If status is 'Approved', copy data to EmployeeDetails collection
+    if (status === 'approved') {
+      const { firstName, lastName, email } = updatedSubmission;
+      const newEmployee = new EmployeeDetails({
+        firstName,
+        lastName,
+        email,
+        joiningDate,
+        trainingStartingDate,
+        // Add other fields as needed
+      });
+      await newEmployee.save();
+    }
+
+    res.status(200).send(updatedSubmission);
+  } catch (error) {
+    console.error('Error updating submission status:', error);
+    res.status(400).send(error);
+  }
+});
+mongoose.connection.once('open', async () => {
+  try {
+    await copyApprovedEmployees();
+  } catch (error) {
+    console.error('Error copying approved employees during server startup:', error);
+  }
+});
+
+
+
+
+// Define a new endpoint for fetching approved submissions
+app.get('/api/employeedetails/approved', async (req, res) => {
+  try {
+    // Fetch approved submissions from the database
+    const submissions = await EmployeeDetails.find({ status: 'approved' }).exec();
+    // Send the approved submissions as a JSON response
+    res.json(submissions);
+  } catch (error) {
+    // Handle any errors that occur while fetching data
+    console.error(error);
+    res.status(500).send('Error fetching approved submissions');
   }
 });
