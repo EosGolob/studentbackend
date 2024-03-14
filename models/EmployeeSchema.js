@@ -26,6 +26,7 @@ const EmployeeDetailsSchema = new mongoose.Schema({
   status:String,
   joiningDate: Date, // New field for joining date
   trainingStartDate: Date, // New field for training starting date
+  employeeCode:String
 });
 
 // Create model for the new table

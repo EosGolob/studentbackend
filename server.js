@@ -12,59 +12,6 @@ const GupshupWhatsApp = require('gupshup-whatsapp-api');
 // const gupshupWhatsApp = new GupshupWhatsApp(process.env.GUPSHUP_AUTH_KEY, { logging: true });
 // Logic to copy data from old table to new table when status is 'Approved'
 
-
-
-async function copyApprovedEmployees() {
-  try {
-    // Find employees with status 'Approved' in the old table
-    const approvedEmployees = await Submission.find({ status: 'approved' });
-    
-    // Copy data for each approved employee to the new table
-    for (const employee of approvedEmployees) {
-     try{
-      const newEmployee = new EmployeeDetails({
-        firstName: employee.firstName,
-        middleName: employee.middleName,
-        lastName: employee.lastName,
-        email: employee.email,
-        interviewDate: employee.interviewDate,
-        jobProfile: employee.jobProfile,
-        qualification: employee.qualification,
-        phoneNo: employee.phoneNo,
-        permanentAddress: employee.permanentAddress,
-        currentAddress: employee.currentAddress,
-        adharNo: employee.adharNo,
-        panNo: employee.panNo,
-        gender: employee.gender,
-        previousEmployee: employee.previousEmployee,
-        dob: employee.dob,
-        maritalStatus: employee.maritalStatus,
-        referral: employee.referral,
-        joiningDate: new Date(), // Set joining date to current date
-        trainingStartDate: new Date(),// Set training starting date to current date
-        status: employee.status
-      });
-      
-      // Save the new employee data
-      await newEmployee.save();
-    }catch(error){
-      if(error.code === 11000){
-        console.warn(`Duplicate key error: ${error.message}. Skipping insertion for ${employee.email}`);
-        continue; 
-      }else{
-        throw error;
-      }
-      }
-    }
-    
-    console.log('Approved employees copied successfully.');
-  } catch (error) {
-    console.error('Error copying approved employees:', error);
-  }
-}
-
-
-
 const app = express();
 
 const Submission = require('./models/Submission');
@@ -83,6 +30,55 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
   .then(() => console.log('MongoDB Connected Amrit Raj'))
   .catch(err => console.error('MongoDB connection error:', err));
 
+  async function copyApprovedEmployees() {
+    try {
+      // Find employees with status 'Approved' in the old table
+      const approvedEmployees = await Submission.find({ status: 'approved' });
+      
+      // Copy data for each approved employee to the new table
+      for (const employee of approvedEmployees) {
+       try{
+        const newEmployee = new EmployeeDetails({
+          firstName: employee.firstName,
+          middleName: employee.middleName,
+          lastName: employee.lastName,
+          email: employee.email,
+          interviewDate: employee.interviewDate,
+          jobProfile: employee.jobProfile,
+          qualification: employee.qualification,
+          phoneNo: employee.phoneNo,
+          permanentAddress: employee.permanentAddress,
+          currentAddress: employee.currentAddress,
+          adharNo: employee.adharNo,
+          panNo: employee.panNo,
+          gender: employee.gender,
+          previousEmployee: employee.previousEmployee,
+          dob: employee.dob,
+          maritalStatus: employee.maritalStatus,
+          referral: employee.referral,
+          joiningDate: new Date(), // Set joining date to current date
+          trainingStartDate: new Date(),// Set training starting date to current date
+          status: employee.status
+        });
+        
+        // Save the new employee data
+        await newEmployee.save();
+      }catch(error){
+        if(error.code === 11000){
+          console.warn(`Duplicate key error: ${error.message}. Skipping insertion for ${employee.email}`);
+          continue; 
+        }else{
+          throw error;
+        }
+        }
+      }
+      
+      console.log('Approved employees copied successfully.');
+    } catch (error) {
+      console.error('Error copying approved employees:', error);
+    }
+  }
+  
 //Define port
 const port = process.env.PORT || 5000;
 
@@ -367,25 +363,36 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
 
 // Update submission status and response status
-app.put('/api/employeedetails/:id/updateStatus', async (req, res) => {
+app.put('/api/employeedetails/:email/updateStatus', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status, joiningDate, trainingStartingDate } = req.body;
+    const { email} = req.params;
+    const { status, joiningDate, trainingStartDate,employeeCode } = req.body;
     const responseDate = new Date();
-
+    console.log("responseDate",responseDate);
     // Update submission status and response date
-    const updatedSubmission = await Submission.findByIdAndUpdate(id, { status, responseDate }, { new: true });
+    // const updatedSubmission = await Submission.findByIdAndUpdate(id, { status, responseDate }, { new: true });
     
+    const updatedEmployee = await EmployeeDetails.findOneAndUpdate(
+      { email },
+      { status, joiningDate, trainingStartDate, employeeCode },
+      { new: true }
+    );
+    // console.log("updatesubmission" ,updatedSubmission)
     // If status is 'Approved', copy data to EmployeeDetails collection
-    if (status === 'approved') {
-      const { firstName, lastName, email } = updatedSubmission;
+   /* if (status === 'approved') {
+      // const { firstName, lastName, email } = updatedSubmission;
+      const submissionData = await Submission.findById(id);
+      if (!submissionData) {
+        return res.status(404).send('Submission not found');
+      }
+      
       const newEmployee = new EmployeeDetails({
-        firstName,
-        lastName,
-        email,
+        firstName:submissionData.firstName,
+        lastName:submissionData.lastName,
+        email:submissionData.email,
         joiningDate,
         trainingStartingDate,
-        // Add other fields as needed
+        employeeCode
       });
       await newEmployee.save();
     }
@@ -394,7 +401,16 @@ app.put('/api/employeedetails/:id/updateStatus', async (req, res) => {
   } catch (error) {
     console.error('Error updating submission status:', error);
     res.status(400).send(error);
+  }*/
+  if (!updatedEmployee) {
+    return res.status(404).send('Employee not found');
   }
+
+  res.status(200).send(updatedEmployee);
+} catch (error) {
+  console.error('Error updating employee status:', error);
+  res.status(400).send(error);
+}
 });
 mongoose.connection.once('open', async () => {
   try {
