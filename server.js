@@ -6,9 +6,10 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-
+const {encrypt}  =  require('./encryption');
+const { sendWhatsAppMessage } = require('./gupshup');
 //for whs
-const GupshupWhatsApp = require('gupshup-whatsapp-api');
+// const GupshupWhatsApp = require('gupshup-whatsapp-api');
 // const gupshupWhatsApp = new GupshupWhatsApp(process.env.GUPSHUP_AUTH_KEY, { logging: true });
 // Logic to copy data from old table to new table when status is 'Approved'
 
@@ -17,6 +18,7 @@ const app = express();
 const Submission = require('./models/Submission');
 const AdminUser = require('./models/AdminUser');
 const EmployeeDetails= require( './models/EmployeeSchema' );
+const { Response } = require('./models/models');
 
 // Middleware
 app.use(cors());
@@ -305,56 +307,75 @@ app.put('/api/submissions/:id/managerResponse', async (req, res) => {
 });
 
 // for whs 
-app.post('/whatsapp', express.raw({ type: 'application/json' }), async (req, res) => {
-  const message = req.body.Message;
-  const from = req.body.From;
+// app.post('/whatsapp', express.raw({ type: 'application/json' }), async (req, res) => {
+  // const message = req.body.Message;
+  // const from = req.body.From;
 
   // Save message to database
-  await Message.create({ sender: from, content: message, timestamp: new Date() });
+  // await Message.create({ sender: from, content: message, timestamp: new Date() });
 
   // Acknowledge the message
-  gupshupWhatsApp.sendText(from, 'Thanks for your message!');
+  // gupshupWhatsApp.sendText(from, 'Thanks for your message!');
 
-  res.sendStatus(200);
-});
+  // res.sendStatus(200);
+// });
 
 // for whats
-app.post('/send-message', express.json(), async (req, res) => {
-  const { message } = req.body;
-  const to = process.env.WHATSAPP_NUMBER;
+// app.post('/send-message', express.json(), async (req, res) => {
+  // const { message } = req.body;
+  // const to = process.env.WHATSAPP_NUMBER;
 
-  try {
+  // try {
     // Send the message via Gupshup API
-    await gupshupWhatsApp.sendText(to, message);
+    // await gupshupWhatsApp.sendText(to, message);
 
     // Save the message to your MongoDB database (optional)
-    await Message.create({ sender: to, content: message, timestamp: new Date() });
+    // await Message.create({ sender: to, content: message, timestamp: new Date() });
 
-    res.status(200).json({ status: 'success' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: 'error', error: error.message });
-  }
-});
-app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    const twiml = new Gupshup.Twilio.twiml.MessagingResponse();
+    // res.status(200).json({ status: 'success' });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ status: 'error', error: error.message });
+//   }
+// });
+// app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+//   try {
+//     const twiml = new Gupshup.Twilio.twiml.MessagingResponse();
 
-    const message = req.body.Body;
-    const from = req.body.From;
+//     const message = req.body.Body;
+//     const from = req.body.From;
 
-    // Save the message to the database
-    await Message.create({ sender: from, content: message, timestamp: new Date() });
+//     // Save the message to the database
+//     await Message.create({ sender: from, content: message, timestamp: new Date() });
 
-    twiml.message(`Your message "${message}" has been saved.`);
+//     twiml.message(`Your message "${message}" has been saved.`);
 
-    res.set('Content-Type', 'text/xml');
-    res.send(twiml.toString());
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('An error occurred while processing the request.');
-  }
-});
+//     res.set('Content-Type', 'text/xml');
+//     res.send(twiml.toString());
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send('An error occurred while processing the request.');
+//   }
+// });
+
+
+
+
+async function sendMessageAndSaveResponse(data) {
+  const encryptedData = encrypt(data);
+
+  // Send encrypted message
+  await sendWhatsAppMessage(encryptedData);
+
+  // Save response to MongoDB
+  const response = new Response({ encryptedData });
+  await response.save();
+
+  console.log('Message sent and response saved successfully.');
+}
+
+// Usage
+sendMessageAndSaveResponse("password=XXXXXX&method=TWO_FACTOR_AUTH&v=1.1&phone_no=919XXXXXXXXX&otp_code=1564");
 
 
 
@@ -369,39 +390,13 @@ app.put('/api/employeedetails/:email/updateStatus', async (req, res) => {
     const { status, joiningDate, trainingStartDate,employeeCode } = req.body;
     const responseDate = new Date();
     console.log("responseDate",responseDate);
-    // Update submission status and response date
-    // const updatedSubmission = await Submission.findByIdAndUpdate(id, { status, responseDate }, { new: true });
     
     const updatedEmployee = await EmployeeDetails.findOneAndUpdate(
       { email },
       { status, joiningDate, trainingStartDate, employeeCode },
       { new: true }
     );
-    // console.log("updatesubmission" ,updatedSubmission)
-    // If status is 'Approved', copy data to EmployeeDetails collection
-   /* if (status === 'approved') {
-      // const { firstName, lastName, email } = updatedSubmission;
-      const submissionData = await Submission.findById(id);
-      if (!submissionData) {
-        return res.status(404).send('Submission not found');
-      }
-      
-      const newEmployee = new EmployeeDetails({
-        firstName:submissionData.firstName,
-        lastName:submissionData.lastName,
-        email:submissionData.email,
-        joiningDate,
-        trainingStartingDate,
-        employeeCode
-      });
-      await newEmployee.save();
-    }
 
-    res.status(200).send(updatedSubmission);
-  } catch (error) {
-    console.error('Error updating submission status:', error);
-    res.status(400).send(error);
-  }*/
   if (!updatedEmployee) {
     return res.status(404).send('Employee not found');
   }
