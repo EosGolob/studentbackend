@@ -383,6 +383,8 @@ sendMessageAndSaveResponse("password=XXXXXX&method=TWO_FACTOR_AUTH&v=1.1&phone_n
 
 
 
+
+
 // Update submission status and response status
 app.put('/api/employeedetails/:email/updateStatus', async (req, res) => {
   try {
@@ -431,3 +433,47 @@ app.get('/api/employeedetails/approved', async (req, res) => {
     res.status(500).send('Error fetching approved submissions');
   }
 });
+//whats app use 
+app.post('/api/send-candidate', async (req, res) => {
+  try {
+    const { candidateId } = req.body;
+    const candidate = await Submission.findById(candidateId);
+
+    if (!candidate) {
+      return res.status(404).json({ message: 'Candidate not found.' });
+    }
+
+    // Send WhatsApp message to manager
+    sendWhatsAppMessageRes(candidate);
+
+    res.status(200).json({ message: 'Candidate data sent to manager.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+async function sendWhatsAppMessageRes(candidate) {
+ 
+    const gupshupApiUrl = 'https://api.gupshup.io/sm/api/v1/msg'; // This URL might change, refer to the Gupshup documentation
+    const apiKey = 'YOUR_GUPSHUP_API_KEY';
+    const whatsappNumber = 'MANAGER_WHATSAPP_NUMBER'; // Manager's WhatsApp number with country code
+    const srcName = 'YOUR_GUPSHUP_APP_NAME'; // Your Gupshup app name
+  
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'apikey': apiKey
+    };
+  const message = `Candidate Name: ${candidate.firstName}\nEmail: ${candidate.email}\nPosition: ${candidate.position}\nPlease reply with 'approve' or 'reject'.`;
+  
+    const data = `channel=whatsapp&source=${srcName}&destination=${whatsappNumber}&message=${encodeURIComponent(message)}&src.name=${srcName}`;
+  
+    try {
+      const response = await axios.post(gupshupApiUrl, data, { headers: headers });
+      console.log('Message sent successfully:', response.data);
+    } catch (error)
+  {
+      console.error('Error sending WhatsApp message:', error);
+    }
+  }
+  

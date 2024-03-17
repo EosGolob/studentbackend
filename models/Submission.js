@@ -58,6 +58,9 @@ const SubmissionSchema = new mongoose.Schema({
   responseDate:{
   type:Date,
   default:Date.now
+},
+whatsappStatus:{
+  type:String,
 }
 });
 // Hash password before saving
