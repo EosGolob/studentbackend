@@ -7,18 +7,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const {encrypt}  =  require('./encryption');
-const { sendWhatsAppMessage } = require('./gupshup');
-//for whs
-// const GupshupWhatsApp = require('gupshup-whatsapp-api');
-// const gupshupWhatsApp = new GupshupWhatsApp(process.env.GUPSHUP_AUTH_KEY, { logging: true });
-// Logic to copy data from old table to new table when status is 'Approved'
-
+const axios = require('axios');
 const app = express();
 
 const Submission = require('./models/Submission');
 const AdminUser = require('./models/AdminUser');
 const EmployeeDetails= require( './models/EmployeeSchema' );
-const { Response } = require('./models/models');
+// const { Response } = require('./models/models');
 
 // Middleware
 app.use(cors());
@@ -135,14 +130,6 @@ app.put('/api/submissions/:id/updateStatus', async (req, res) => {
     const {id} = req.params;
     const {status} = req.body;
     const responseDate = new Date();
-  /* 
-   const updatedSubmission = await Submission.findByIdAndUpdate(req.params.id, {  
-   $set: req.body
-    }, { new: true });
-    res.status(200).send(updatedSubmission);
-  } catch (error) {
-    res.status(400).send(error);
-  }*/
   const updatedSubmission = await Submission.findByIdAndUpdate(id, { status, responseDate }, { new: true });
   res.status(200).send(updatedSubmission);
 } catch (error) {
@@ -306,84 +293,6 @@ app.put('/api/submissions/:id/managerResponse', async (req, res) => {
   }
 });
 
-// for whs 
-// app.post('/whatsapp', express.raw({ type: 'application/json' }), async (req, res) => {
-  // const message = req.body.Message;
-  // const from = req.body.From;
-
-  // Save message to database
-  // await Message.create({ sender: from, content: message, timestamp: new Date() });
-
-  // Acknowledge the message
-  // gupshupWhatsApp.sendText(from, 'Thanks for your message!');
-
-  // res.sendStatus(200);
-// });
-
-// for whats
-// app.post('/send-message', express.json(), async (req, res) => {
-  // const { message } = req.body;
-  // const to = process.env.WHATSAPP_NUMBER;
-
-  // try {
-    // Send the message via Gupshup API
-    // await gupshupWhatsApp.sendText(to, message);
-
-    // Save the message to your MongoDB database (optional)
-    // await Message.create({ sender: to, content: message, timestamp: new Date() });
-
-    // res.status(200).json({ status: 'success' });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ status: 'error', error: error.message });
-//   }
-// });
-// app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-//   try {
-//     const twiml = new Gupshup.Twilio.twiml.MessagingResponse();
-
-//     const message = req.body.Body;
-//     const from = req.body.From;
-
-//     // Save the message to the database
-//     await Message.create({ sender: from, content: message, timestamp: new Date() });
-
-//     twiml.message(`Your message "${message}" has been saved.`);
-
-//     res.set('Content-Type', 'text/xml');
-//     res.send(twiml.toString());
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send('An error occurred while processing the request.');
-//   }
-// });
-
-
-
-
-async function sendMessageAndSaveResponse(data) {
-  const encryptedData = encrypt(data);
-
-  // Send encrypted message
-  await sendWhatsAppMessage(encryptedData);
-
-  // Save response to MongoDB
-  const response = new Response({ encryptedData });
-  await response.save();
-
-  console.log('Message sent and response saved successfully.');
-}
-
-// Usage
-sendMessageAndSaveResponse("password=XXXXXX&method=TWO_FACTOR_AUTH&v=1.1&phone_no=919XXXXXXXXX&otp_code=1564");
-
-
-
-
-
-
-
-
 
 // Update submission status and response status
 app.put('/api/employeedetails/:email/updateStatus', async (req, res) => {
@@ -433,6 +342,7 @@ app.get('/api/employeedetails/approved', async (req, res) => {
     res.status(500).send('Error fetching approved submissions');
   }
 });
+
 //whats app use 
 app.post('/api/send-candidate', async (req, res) => {
   try {
@@ -456,9 +366,9 @@ app.post('/api/send-candidate', async (req, res) => {
 async function sendWhatsAppMessageRes(candidate) {
  
     const gupshupApiUrl = 'https://api.gupshup.io/sm/api/v1/msg'; // This URL might change, refer to the Gupshup documentation
-    const apiKey = 'YOUR_GUPSHUP_API_KEY';
-    const whatsappNumber = 'MANAGER_WHATSAPP_NUMBER'; // Manager's WhatsApp number with country code
-    const srcName = 'YOUR_GUPSHUP_APP_NAME'; // Your Gupshup app name
+    const apiKey = 'etdnk32cmakq3bgmfvg49b6kshmbrumq';
+    const whatsappNumber = '+918603735691'; // Manager's WhatsApp number with country code
+    const srcName = 'interviewApi'; // Your Gupshup app name
   
     const headers = {
       'Content-Type': 'application/x-www-form-urlencoded',
