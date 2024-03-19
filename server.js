@@ -368,13 +368,13 @@ async function sendWhatsAppMessageRes(candidate) {
     const gupshupApiUrl = 'https://api.gupshup.io/sm/api/v1/msg'; // This URL might change, refer to the Gupshup documentation
     const apiKey = 'etdnk32cmakq3bgmfvg49b6kshmbrumq';
     const whatsappNumber = '+918603735691'; // Manager's WhatsApp number with country code
-    const srcName = 'interviewApi'; // Your Gupshup app name
+    const srcName = 'TestWhatsappIntegrate'; // Your Gupshup app name
   
     const headers = {
       'Content-Type': 'application/x-www-form-urlencoded',
       'apikey': apiKey
     };
-  const message = `Candidate Name: ${candidate.firstName}\nEmail: ${candidate.email}\nPosition: ${candidate.position}\nPlease reply with 'approve' or 'reject'.`;
+  const message = `Candidate Name: ${candidate.firstName}\nEmail: ${candidate.email}\nPosition: ${candidate.jobProfile}\nPlease reply with 'approve' or 'reject'.`;
   
     const data = `channel=whatsapp&source=${srcName}&destination=${whatsappNumber}&message=${encodeURIComponent(message)}&src.name=${srcName}`;
   
