@@ -15,6 +15,11 @@ const AdminSchema = new mongoose.Schema({
     password:{
         type:String,
         required: true
+    },
+    role:{
+        type:String,
+        enum:['admin','hr','manager'],
+        require:true
     }
 });
 // Hash password befor saving 

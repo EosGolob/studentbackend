@@ -139,6 +139,29 @@ app.put('/api/submissions/:id/updateStatus', async (req, res) => {
 });
   // User login
   //hand AdminLogin page 
+
+
+  //Middleware to check role
+  const checkRole = (roles) => (req,res,next)=>{
+    const {role} = req.user;
+    if (!roles.includes(role)) {
+      return res.next();
+      } else{
+        return res.status(403).json({ message: 'You are not authorized for this action.'});
+      }
+    };
+
+    // HR Dashboard
+    app.get('/api/hr/dashboard', checkRole(['hr']), (req, res) => {
+   // HR dashboard features
+    res.json({ message: 'HR dashboard features' });
+    });
+
+  // Manager Dashboard
+    app.get('/api/manager/dashboard', checkRole(['manager']), (req, res) => {
+  // Manager dashboard features
+     res.json({ message: 'Manager dashboard features' });
+});
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   console.log('emaildata',email)
@@ -166,8 +189,20 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 });
+// POST admin
+// Register AdminLogin
+app.post('/api/admins', async (req, res) => {
+  const adminData = req.body;
+  try {
+      const adminUser = new AdminUser(adminData);
+      const savedAdmin = await adminUser.save();
+      res.status(201).send(savedAdmin);
+  } catch (error) {
+      res.status(400).send(error);
+  }
+});
 //  Admin login code 
-app.post('/api/Adminlogin', async (req, res) => {
+app.post('/api/Admin/login', async (req, res) => {
   const { email, password } = req.body;
   console.log('email data',email);
   console.log('password data',password);
@@ -196,16 +231,17 @@ app.post('/api/Adminlogin', async (req, res) => {
     }
 
     // If credentials are valid, generate JWT token
-    const token = jwt.sign({ userId: user._id, isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-    res.json({ token });
+    // const token = jwt.sign({ userId: user._id, isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // res.json({ token });
+    res.json({ token, role: user.role });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
   }
 });
 // Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
+/*const verifyToken = (req, res, next) => {
   const token = req.headers.authorization;
 
   if (!token) {
@@ -221,7 +257,24 @@ const verifyToken = (req, res, next) => {
     res.status(401).json({ message: 'Invalid token' });
   }
 };
+*/
+// Middleware to verify JWT token
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization;
 
+  if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+      next();
+  } catch (error) {
+      console.error(error);
+      res.status(401).json({ message: 'Invalid token' });
+  }
+};
 // Example protected route
 app.get('/api/user', verifyToken, async (req, res) => {
   try {
