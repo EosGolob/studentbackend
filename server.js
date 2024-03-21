@@ -102,6 +102,7 @@ app.post('/api/submissions', async (req, res) => {
 });
 // POST admin
 //Register AdminLogin 
+/*
 app.post('/api/admins', async (req, res) => {
   const adminData = req.body;
   try {
@@ -112,6 +113,7 @@ app.post('/api/admins', async (req, res) => {
     res.status(400).send(error);
   }
 });
+*/
 // GET all submissions
 app.get('/api/submissions', async (req, res) => {
   const ft=req.body.formData;
@@ -201,6 +203,8 @@ app.post('/api/admins', async (req, res) => {
       res.status(400).send(error);
   }
 });
+
+/*
 //  Admin login code 
 app.post('/api/Admin/login', async (req, res) => {
   const { email, password } = req.body;
@@ -235,6 +239,27 @@ app.post('/api/Admin/login', async (req, res) => {
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
     // res.json({ token });
     res.json({ token, role: user.role });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});*/
+app.post('/api/Admin/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await AdminUser.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // If credentials are valid, generate JWT token
+    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token, role: user.role ,user});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
