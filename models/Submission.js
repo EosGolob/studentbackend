@@ -2,9 +2,15 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const SubmissionSchema = new mongoose.Schema({
-  firstName: String,
+  firstName: {
+    type: String,
+    required: true,
+  },
   middleName: String,
-  lastName: String,
+  lastName: {
+    type: String, 
+    required: true,
+  },
   email: { 
     type: String,
     required: true,
@@ -12,16 +18,23 @@ const SubmissionSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
   },
   interviewDate: Date,
-  jobProfile: String,
-  qualification: String,
+  jobProfile: {
+    type:String,
+    require: true
+  },
+  qualification:{ 
+    type:String,
+    require:true
+  },
+
   phoneNo:{
     type: String,
     validate: {
       validator: function(v) {
-        return /\d{3}-\d{3}-\d{4}/.test(v); // Validates phone number format (e.g., 123-456-7890)
+        //return /\d{3}-\d{3}-\d{4}/.test(v); 
+        return /^\+91[0-9]{10}$/i.test(v);
       },
       message: props => `${props.value} is not a valid phone number! Please use format xxx-xxx-xxxx`
     },
@@ -32,21 +45,40 @@ const SubmissionSchema = new mongoose.Schema({
         enum: ['Pending', 'Approved', 'Rejected'],
         default:'Pending'
     },
-    permanentAddress: String,
+    permanentAddress: {
+      type:String,
+      required:[true,'Permanent address field cannot be empty']
+    },
     currentAddress: String,
-    adharNo: String,
-    panNo: String,
-  gender: {
+    adharNo: {
+      type:String,
+      require:true,
+      unique:true
+    },
+    panNo: {
+      type:String,
+      unique:true
+    },
+  gender:{
       type: String,
+      require:true,
       enum: ['Male', 'Female', 'Other']
     },
-    previousEmployee: String,
-    dob: Date,
+    previousEmployee:{ 
+      type:String,
+    },
+    dob: {
+      type:Date,
+      required: true
+    },
   maritalStatus: {
       type: String,
-      enum: ['Single', 'Married']
+      enum: ['Single', 'Married'],
+      require:true
     },
-    referral: String,
+    referral: {
+      type:String,
+    },
   createdAt: {
   type: Date,
   default: Date.now
